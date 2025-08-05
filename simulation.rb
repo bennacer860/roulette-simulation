@@ -1,147 +1,58 @@
+#!/usr/bin/env ruby
+
+# frozen_string_literal: true
+
+# This class simulates a roulette game using the Martingale strategy.
 class Roulette
-	
-	
-	attr_accessor :account
-	attr_accessor :times
-	
-	
-	
-	def initialize(account, benefit,changeColor)
-		@changeColor
-		@benefit=benefit
-		@initialDate=Time.now
-		@initialAccount=account
-		@account=account
-		@myColor=1
-		@bet = [0.25 , 0.5 ,1 , 2.5 , 5 , 10]
-		simulate
-		result
-        end
-	
-	
-	
-	
-	#lose or win
-	def win?(color)
-		if(@myColor==color)
-			return true
-		else
-			return false
-		end
-	end
-	
-	#return color : 1 for black and 0 for red
-	def giveColor
-		return  rand(2)
-	end	
-	
-	
-	#change your color
-	def changeColor
-		if(@myColor == 1)
-			@myColor = 0
-		elsif(@myColor ==0)
-			@myColor =1
-		end
-	end
-	
-	
-	
-	def simulate
-	#what was the maximum of your account	
-	@max=@initialAccount
-	#how many time have we played
-	@times=0	
-	#the size of the Array that contain the amounts we can bet
-	betSize=@bet.size - 1
-	#an index that points to the value to bet
-	betAmount=0
-			#if we still have the minimum bet we can play .the rules are simple if we win we would win the amount that we have bet ,the opposite goes for when we lose
-			while(@account >= @bet[0]   and @account <= @benefit)
-			#how many time have we played
-			@times+=1
-				#if we win the bet we reset the betAmount
-				color=giveColor
-				#color=0  
-				#puts "the color is #{color}"
-				if(win?(color))
-					#~ puts "you have won: #{@bet[betAmount]} and your account has: #{@account} dollars "
-					@account+=@bet[betAmount]
-					betAmount=0
-					#setting the maximum amount
-					if(@account > @max)
-						@max = @account
-					end
-					#if the change color flag is set to true make the change every time we win
-					if( @changeColor)
-					    changeColor
-					end
-				else
+  attr_reader :spin_count, :wins, :losses, :money
 
-					#else we double our betAmount (one important rule is that we can't bet more than 10)
-					#if the amount to bet is greater than the amount that we have in our account we can not bet 
-					if(@bet[betAmount] <= @account)
-						#~ puts "you have lost: #{@bet[betAmount]} and your account has: #{@account} dollars "
-						@account-=@bet[betAmount]
-						#if we want to bet more than the limit , do nothing
-						if( betAmount < betSize )
-							betAmount+=1
-						end
-					else	
-						#~ puts "#################################################"
-						#~ puts "Insufficiant amount to bet, you dont have #{@bet[betAmount]} dollars , account=#{@account}"
-						
-						if(@account != 0)
-							betAmount=0
-							#~ puts "you are loosing too much , lets reset our gambling to have a chance to catch up ,account=#{@account}"
-						else	
-							return
-						end
-					end
-				end
-			end
-	end
-	
-	def result
-		#~ benefit = @account - @initialAccount
-		#~ percentage=(@account - @initialAccount)/@initialAccount * 100
-		#~ duration = Time.now - @initialDate 
-		#~ puts "your account has #{@account} , the percentage is #{percentage}% the difference is #{benefit}"
-		#~ puts "you played :#{@times-1} times and the maximum amount was #{@max}"
-		#~ puts "the duration of the game was #{duration} seconds"
+  # @param money [Integer] The initial amount of money the player has.
+  # @param bet [Integer] The initial bet size.
+  # @param max_spins [Integer] The maximum number of spins to simulate.
+  def initialize(money, bet, max_spins)
+    @money = money
+    @bet = bet
+    @max_spins = max_spins
+    @spin_count = 0
+    @wins = 0
+    @losses = 0
+  end
 
-		#have we met our objectives
-		if(@account >= @benefit)
-			return true
-		else
-			return false
-		end		
-	end
-	
+  def spin
+    @spin_count += 1
+    if rand(2).zero?
+      @money += @bet
+      @wins += 1
+      @bet = 1
+    else
+      @money -= @bet
+      @losses += 1
+      @bet *= 2
+    end
+  end
+
+  def play
+    spin while @money.positive? && @spin_count < @max_spins
+  end
+
+  def results
+    <<~RESULTS
+      Results:
+        Spins: #{@spin_count}
+        Wins: #{@wins}
+        Losses: #{@losses}
+        Money: #{@money}
+    RESULTS
+  end
 end
 
-class Simulation
-	
-	def   initialize(n,changeColor)
-		@nGame=n
-		d=Time.now
-		win=0
-		games=0
-		0.upto(@nGame -1) do
-		r=Roulette.new(20,40,changeColor)	
-			if(r.result == true )
-				win+=1
-				games+=(r.times )-1
-			end
-		end
-	puts "Win probability is :#{(win*100)/@nGame}% in #{games/@nGame}"
-	puts "The operations took #{Time.now-d} seconds"
-	end
-	
-	
-end
+if __FILE__ == $PROGRAM_NAME
+  # Create a new roulette game with $1000, a bet of $1, and a maximum of 1000 spins.
+  game = Roulette.new(1000, 1, 1000)
 
-puts "#simulation with change color"
-Simulation.new(10000,true)
-puts "#simulation without change color"
-Simulation.new(10000,false)
+  # Play the game.
+  game.play
+
+  # Show the results.
+  puts game.results
+end
